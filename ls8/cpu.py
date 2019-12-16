@@ -7,7 +7,9 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.ram = [0] * 8
+        self.reg = [0] * 8
+        self.pc = 0
 
     def load(self):
         """Load a program into memory."""
@@ -25,20 +27,57 @@ class CPU:
             0b00000000,
             0b00000001, # HLT
         ]
-
+        
         for instruction in program:
             self.ram[address] = instruction
             address += 1
 
 
     def alu(self, op, reg_a, reg_b):
-        """ALU operations."""
+        """
+            ALU operations. Arithmetic Logic Unit
+        """
+        def add():
+            return self.reg[reg_a] + self.reg[reg_b]
+        
+        def sub():
+            return self.reg[reg_a] - self.reg[reg_b]
+        
+        def mul():
+            return self.reg[reg_a] * self.reg[reg_b]
+        
+        def div():
+            return self.reg[reg_a] / self.reg[reg_b]
+        
+        def mod():
+            return self.reg[reg_a] % self.reg[reg_b]
 
-        if op == "ADD":
-            self.reg[reg_a] += self.reg[reg_b]
-        #elif op == "SUB": etc
-        else:
-            raise Exception("Unsupported ALU operation")
+        instructions = {
+            "ADD": add,
+            "SUB": sub,
+            "MUL": mul,
+            "DIV": div,
+            "MOD": mod
+        }
+
+        try:
+            instructions[op]
+        except:
+            raise Exception("Unsupported ALU Operation")
+
+        # if op == "ADD":
+        #     self.reg[reg_a] += self.reg[reg_b]
+        # #elif op == "SUB": etc
+        # else:
+        #     raise Exception("Unsupported ALU operation")
+    
+    def ram_read(self, pc):
+        # print(f"ram: {self.ram}")
+        # print(f"pc: {pc} | ram read: {self.ram[pc]}")
+        return self.ram[pc]
+    
+    def ram_write(self, pc, instruction):
+        self.ram[pc] = instruction
 
     def trace(self):
         """
@@ -62,4 +101,58 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        running = True
+        
+        def ldi():
+            self.reg[self.ram[self.pc+1]] = self.ram[self.pc+2]
+            self.pc += 3
+        
+        def prn():
+            print(f"{self.reg[self.ram[self.pc+1]]}")
+            self.pc += 1
+        
+        def hlt():
+            nonlocal running
+            running = False
+            self.pc += 1
+
+        # alu(self, op, reg_a, reg_b)
+        
+        def add():
+            self.alu("ADD", self.pc+1, self.pc+2)
+            self.pc += 3
+        
+        def sub():
+            self.alu("SUB", self.pc+1, self.pc+2)
+            self.pc += 3
+        
+        def mul():
+            self.alu("MUL", self.pc+1, self.pc+2)
+            self.pc += 3
+        
+        def div():
+            self.alu("DIV", self.pc+1, self.pc+2)
+            self.pc += 3
+        
+        def mod():
+            self.alu("MOD", self.pc+1, self.pc+2)
+            self.pc += 3
+
+        trans_instructions = {
+            0b10000010: ldi(),
+            0b01000111: prn(),
+            0b00000001: hlt(),
+            0b10100000: add,
+            0b10100001: sub,
+            0b10100010: mul,
+            0b10100011: div,
+            0b10100100: mod
+        }
+
+        # print(f"trans_instructions: {trans_instructions}")
+
+        while running:
+            cur_instruction = self.ram_read(self.pc)
+
+            trans_instructions[cur_instruction]
+
