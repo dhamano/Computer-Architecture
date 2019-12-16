@@ -15,11 +15,8 @@ class CPU:
         """Load a program into memory."""
         args = sys.argv
 
-
         address = 0
         program = []
-
-        # For now, we've just hardcoded a program:
 
         if len(args) < 2:
             program = [
@@ -86,19 +83,16 @@ class CPU:
         # else:
         #     raise Exception("Unsupported ALU operation")
     
-    def cpu_instructions(self, inst, running=None):
+    def cpu_instructions(self, inst, ram_a=None, ram_b=None, running=None):
         
         def ldi():
-            self.reg[self.ram[self.pc+1]] = self.ram[self.pc+2]
-            self.pc += 3
+            self.reg[self.ram[ram_a]] = self.ram[ram_b]
         
         def prn():
-            print(f"{self.reg[self.ram[self.pc+1]]}")
-            self.pc += 2
+            print(f"{self.reg[self.ram[ram_a]]}")
         
         def hlt():
             running[0] = False
-            self.pc += 1
 
         cpu_inst = {
             "LDI": ldi,
@@ -145,13 +139,16 @@ class CPU:
         running = [True]
 
         def ldi():
-            self.cpu_instructions("LDI")
+            self.cpu_instructions("LDI", self.pc+1, self.pc+2)
+            self.pc += 3
 
         def prn():
-            self.cpu_instructions("PRN")
+            self.cpu_instructions("PRN", self.pc+1)
+            self.pc += 2
 
         def hlt():
-            self.cpu_instructions("HLT", running)
+            self.cpu_instructions("HLT", running=running)
+            self.pc += 1
 
         # alu(self, op, reg_a, reg_b)
         
