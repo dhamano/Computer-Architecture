@@ -7,24 +7,34 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.ram = [0] * 256
+        self.reg = [0] * 8
+        self.pc = 0
 
     def load(self):
         """Load a program into memory."""
+        args = sys.argv
 
         address = 0
+        program = []
 
-        # For now, we've just hardcoded a program:
-
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+        if len(args) < 2:
+            program = [
+                # From print8.ls8
+                0b10000010, # LDI R0,8
+                0b00000000,
+                0b00001000,
+                0b01000111, # PRN R0
+                0b00000000,
+                0b00000001, # HLT
+            ]
+        else:
+            with open(args[1]) as f:
+                for line in f.readlines():
+                    if "#" in line:
+                        ind = line.index("#")
+                        line = line[:ind-1]
+                    program.append(int(line,2))
 
         for instruction in program:
             self.ram[address] = instruction
@@ -32,13 +42,77 @@ class CPU:
 
 
     def alu(self, op, reg_a, reg_b):
-        """ALU operations."""
+        """
+            ALU operations. Arithmetic Logic Unit
+        """
+        def add():
+            self.reg[self.ram[reg_a]] = self.reg[self.ram[reg_a]] + self.reg[self.ram[reg_b]]
+        
+        def sub():
+            self.reg[self.ram[reg_a]] =  self.reg[self.ram[reg_a]] - self.reg[self.ram[reg_b]]
+        
+        def mul():
+            self.reg[self.ram[reg_a]] =  self.reg[self.ram[reg_a]] * self.reg[self.ram[reg_b]]
+        
+        def div():
+            self.reg[self.ram[reg_a]] =  self.reg[self.ram[reg_a]] / self.reg[self.ram[reg_b]]
+        
+        def mod():
+            self.reg[self.ram[reg_a]] =  self.reg[self.ram[reg_a]] % self.reg[self.ram[reg_b]]
 
-        if op == "ADD":
-            self.reg[reg_a] += self.reg[reg_b]
-        #elif op == "SUB": etc
-        else:
-            raise Exception("Unsupported ALU operation")
+        instructions = {
+            "ADD": add,
+            "SUB": sub,
+            "MUL": mul,
+            "DIV": div,
+            "MOD": mod
+        }
+
+        # print("ALU op:", op, reg_a, reg_b)
+        # print("REGISTER", self.reg)
+
+        try:
+            func = instructions[op]
+            func()
+        except:
+            raise Exception("Unsupported ALU Operation")
+
+        # if op == "ADD":
+        #     self.reg[reg_a] += self.reg[reg_b]
+        # #elif op == "SUB": etc
+        # else:
+        #     raise Exception("Unsupported ALU operation")
+    
+    def cpu_instructions(self, inst, ram_a=None, ram_b=None, running=None):
+        
+        def ldi():
+            self.reg[self.ram[ram_a]] = self.ram[ram_b]
+        
+        def prn():
+            print(f"{self.reg[self.ram[ram_a]]}")
+        
+        def hlt():
+            running[0] = False
+
+        cpu_inst = {
+            "LDI": ldi,
+            "PRN": prn,
+            "HLT": hlt
+        }
+
+        try:
+            func = cpu_inst[inst]
+            func()
+        except:
+            raise Exception("Unsupported Instruction")
+    
+    def ram_read(self, pc):
+        # print(f"ram: {self.ram}")
+        # print(f"pc: {pc} | ram read: {self.ram[pc]}")
+        return self.ram[pc]
+    
+    def ram_write(self, pc, instruction):
+        self.ram[pc] = instruction
 
     def trace(self):
         """
@@ -62,4 +136,64 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        running = [True]
+
+        def ldi():
+            self.cpu_instructions("LDI", self.pc+1, self.pc+2)
+            self.pc += 3
+
+        def prn():
+            self.cpu_instructions("PRN", self.pc+1)
+            self.pc += 2
+
+        def hlt():
+            self.cpu_instructions("HLT", running=running)
+            self.pc += 1
+
+        # alu(self, op, reg_a, reg_b)
+        
+        def add():
+            self.alu("ADD", self.pc+1, self.pc+2)
+            self.pc += 3
+        
+        def sub():
+            self.alu("SUB", self.pc+1, self.pc+2)
+            self.pc += 3
+        
+        def mul():
+            self.alu("MUL", self.pc+1, self.pc+2)
+            self.pc += 3
+        
+        def div():
+            self.alu("DIV", self.pc+1, self.pc+2)
+            self.pc += 3
+        
+        def mod():
+            self.alu("MOD", self.pc+1, self.pc+2)
+            self.pc += 3
+
+        trans_instructions = {
+            0b10000010: ldi,
+            0b01000111: prn,
+            0b00000001: hlt,
+            0b10100000: add,
+            0b10100001: sub,
+            0b10100010: mul,
+            0b10100011: div,
+            0b10100100: mod
+        }
+
+        # print(f"trans_instructions: {trans_instructions}")
+
+        while running[0]:
+            cur_instruction = self.ram_read(self.pc)
+            # print("pc",self.pc,"cur_instruction",cur_instruction)
+            # print("trans_instructions[cur_instruction]",trans_instructions[cur_instruction])
+
+            try:
+                func = trans_instructions[cur_instruction]
+                func()
+            except:
+                raise Exception("Unsupported Instruction")
+                sys.exit(1)
+
