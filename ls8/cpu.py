@@ -22,12 +22,18 @@ class CPU: # Main CPU class.
             0b01000101: self.push,
             0b01000110: self.pop,
             0b01010000: self.call,
-            0b00010001: self.ret
+            0b00010001: self.ret,
+            0b01010010: self.inter,
+            0b10000100: self.stor,
+            0b01010100: self.jmp,
+            0b01001000: self.pra
         }
         self.intm = 5 # Interrupt Mask
         self.ints = 6 # Interrupt Status
         self.sp = 7 # Stack Pointer
         self.reg[self.sp] = 0xF4 # Decimal 243
+        self.reg[self.ints] = 0b00000000 # Status
+        self.reg[self.intm] = 0b00000000 # Mask
 
     def load(self):
         """Load a program into memory."""
@@ -141,6 +147,25 @@ class CPU: # Main CPU class.
 
         print()
 
+    def inter(self):
+        print('interrupt')
+    
+    def pra(self):
+        print(chr(self.reg[self.ram[self.pc+1]]))
+        
+    
+    def jmp(self):
+        print('jump',self.ram[self.pc+1])
+        self.pc = self.reg[self.ram[self.pc+1]]
+        self.inc_pc()
+    
+    def stor(self):
+        print('store')
+        temp = self.reg[self.ram[self.pc+1]]
+        self.reg[self.ram[self.pc+1]] = self.reg[self.ram[self.pc+2]]
+        self.reg[self.ram[self.pc+1]] = temp
+        self.inc_pc()
+
     def call(self):
         self.reg[self.sp] -= 1
         self.ram[self.reg[self.sp]] = self.pc + ((self.ir & 0b11000000) >> 6) + 1
@@ -207,6 +232,7 @@ class CPU: # Main CPU class.
 
         while self.running:
             self.ir = self.ram_read(self.pc)
+            print("self.ir",self.ir)
 
             try:
                 func = self.trans_instructions[self.ir]
