@@ -27,7 +27,9 @@ class CPU: # Main CPU class.
             0b10000100: self.stor,
             0b01010100: self.jmp,
             0b01001000: self.pra,
-            0b10100111: self.comp
+            0b10100111: self.comp,
+            0b01010101: self.jeq,
+            0b01010110: self.jne
         }
         self.fl = 0b00000000 # 00000LGE
         self.intm = 5 # Interrupt Mask
@@ -91,14 +93,18 @@ class CPU: # Main CPU class.
             reg_b_val = self.reg[self.ram[reg_b]]
             # 00000LGE
             if reg_a_val < reg_b_val:
+                # print("less than")
                 self.fl = 0b00000100
             elif reg_a_val > reg_b_val:
+                # print("greater than")
                 self.fl = 0b00000010
             elif reg_a_val == reg_b_val:
-                self.rl = 0b00000001
+                # print("equal")
+                self.fl = 0b00000001
             else:
                 print("Given values cannot be compared")
-            # print("reg_a_val", reg_a_val,"reg_b_val",reg_b_val,f"self.fl: {self.fl:#010b}")
+            # print("reg_a_val", reg_a_val,"reg_b_val",reg_b_val,f"self.fl: {self.fl:#010b}","\nself.pc",self.pc)
+            # time.sleep(1)
 
         instructions = {
             "ADD": add,
@@ -173,7 +179,26 @@ class CPU: # Main CPU class.
     
     def jmp(self):
         self.pc = self.reg[self.ram[self.pc+1]]
-        self.inc_pc()
+
+    def jeq(self):
+        # print(f"JEQ: {self.fl:#010b}")
+        mask = 0b00000001
+        eq_val = self.fl & mask
+        if eq_val == 1:
+            self.pc = self.reg[self.ram[self.pc+1]]
+        else:
+            self.inc_pc()
+        # time.sleep(1)
+    
+    def jne(self):
+        # print(f"JNE: {self.fl:#010b}")
+        mask = 0b00000001
+        eq_val = self.fl & mask
+        if eq_val != 1:
+            self.pc = self.reg[self.ram[self.pc+1]]
+        else:
+            self.inc_pc()
+        # time.sleep(1)
 
     def stor(self):
         temp = self.reg[self.ram[self.pc+1]]
@@ -241,6 +266,7 @@ class CPU: # Main CPU class.
     def comp(self):
         self.alu("CMP", self.pc+1, self.pc+2)
         self.inc_pc()
+        # print(f"COMP END: self.pc: {self.pc}")
 
     def inc_pc(self):
         self.pc += ((self.ir & 0b11000000) >> 6) + 1
@@ -287,7 +313,8 @@ class CPU: # Main CPU class.
         while self.running:
             # current_time = time.clock()
             self.ir = self.ram_read(self.pc)
-            print(f"self.ir: {self.ir:#010b}")
+            # print(f"self.pc: {self.pc}")
+            # print(f"self.ir: {self.ir:#010b}")
             # time_change = current_time-start_time
             # print("Time change:", time_change)
             # if time_change > 0.1:
