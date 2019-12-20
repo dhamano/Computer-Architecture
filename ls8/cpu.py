@@ -1,6 +1,6 @@
 """CPU functionality."""
 
-import sys
+import sys, time
 
 class CPU: # Main CPU class.
 
@@ -225,15 +225,55 @@ class CPU: # Main CPU class.
 
     def inc_pc(self):
         self.pc += ((self.ir & 0b11000000) >> 6) + 1
+    
+    def int_timer_check(self):
+        print("SET IS!")
+        # self.intm = 5 # Interrupt Mask
+        # self.ints = 6 # Interrupt Status
+        mask = 0b00000001
+        is_val = self.reg[self.ints]
+        print('before',f'{self.reg[self.ints]:#010b}')
+        self.reg[self.ints] = is_val | mask
+        print('after',f'{self.reg[self.ints]:#010b}')
+        time.sleep(2)
+
+    def check_im(self):
+        print("CHECK IM")
+        int_im = self.reg[self.intm]
+        time.sleep(0.01)
+        if int_im > 0:
+            print('int_im',int_im)
+            print('after',f'{self.reg[self.ints]:#010b}')
+            time.sleep(0.01)
+            for i in range(8):
+                print(f"for i: {i}")
+                time.sleep(0.01)
+                interrupt = ((int_im >> i) & self.reg[self.ints]) == 1
+                print("interrupt", interrupt)
+                if interrupt > 0:
+                    print(f"{interrupt:#010b}")
+                    mask = 0b00000000
+                    
+                    time.sleep(5)
+        # self.intm = 5 # Interrupt Mask
+        # self.ints = 6 # Interrupt Status
+
 
     def run(self):
         self.running = True
         count = 0
+        start_time = time.clock()
+        current_time = time.clock()
 
         while self.running:
+            current_time = time.clock()
             self.ir = self.ram_read(self.pc)
-            print("self.ir",self.ir)
-
+            time_change = current_time-start_time
+            print("Time change:", time_change)
+            if time_change > 0.1:
+                start_time = current_time
+                self.int_timer_check()
+            self.check_im()
             try:
                 func = self.trans_instructions[self.ir]
                 func()
