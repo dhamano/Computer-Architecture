@@ -26,8 +26,10 @@ class CPU: # Main CPU class.
             0b01010010: self.inter,
             0b10000100: self.stor,
             0b01010100: self.jmp,
-            0b01001000: self.pra
+            0b01001000: self.pra,
+            0b10100111: self.comp
         }
+        self.fl = 0b00000000 # 00000LGE
         self.intm = 5 # Interrupt Mask
         self.ints = 6 # Interrupt Status
         self.sp = 7 # Stack Pointer
@@ -84,12 +86,27 @@ class CPU: # Main CPU class.
         def mod():
             self.reg[self.ram[reg_a]] =  self.reg[self.ram[reg_a]] % self.reg[self.ram[reg_b]]
 
+        def comp():
+            reg_a_val = self.reg[self.ram[reg_a]]
+            reg_b_val = self.reg[self.ram[reg_b]]
+            # 00000LGE
+            if reg_a_val < reg_b_val:
+                self.fl = 0b00000100
+            elif reg_a_val > reg_b_val:
+                self.fl = 0b00000010
+            elif reg_a_val == reg_b_val:
+                self.rl = 0b00000001
+            else:
+                print("Given values cannot be compared")
+            # print("reg_a_val", reg_a_val,"reg_b_val",reg_b_val,f"self.fl: {self.fl:#010b}")
+
         instructions = {
             "ADD": add,
             "SUB": sub,
             "MUL": mul,
             "DIV": div,
-            "MOD": mod
+            "MOD": mod,
+            "CMP": comp
         }
 
         try:
@@ -155,12 +172,10 @@ class CPU: # Main CPU class.
         
     
     def jmp(self):
-        print('jump',self.ram[self.pc+1])
         self.pc = self.reg[self.ram[self.pc+1]]
         self.inc_pc()
-    
+
     def stor(self):
-        print('store')
         temp = self.reg[self.ram[self.pc+1]]
         self.reg[self.ram[self.pc+1]] = self.reg[self.ram[self.pc+2]]
         self.reg[self.ram[self.pc+1]] = temp
@@ -222,6 +237,10 @@ class CPU: # Main CPU class.
     def mod(self):
         self.alu("MOD", self.pc+1, self.pc+2)
         self.inc_pc()
+    
+    def comp(self):
+        self.alu("CMP", self.pc+1, self.pc+2)
+        self.inc_pc()
 
     def inc_pc(self):
         self.pc += ((self.ir & 0b11000000) >> 6) + 1
@@ -262,18 +281,19 @@ class CPU: # Main CPU class.
     def run(self):
         self.running = True
         count = 0
-        start_time = time.clock()
-        current_time = time.clock()
+        # start_time = time.clock()
+        # current_time = time.clock()
 
         while self.running:
-            current_time = time.clock()
+            # current_time = time.clock()
             self.ir = self.ram_read(self.pc)
-            time_change = current_time-start_time
-            print("Time change:", time_change)
-            if time_change > 0.1:
-                start_time = current_time
-                self.int_timer_check()
-            self.check_im()
+            print(f"self.ir: {self.ir:#010b}")
+            # time_change = current_time-start_time
+            # print("Time change:", time_change)
+            # if time_change > 0.1:
+            #     start_time = current_time
+            #     self.int_timer_check()
+            # self.check_im()
             try:
                 func = self.trans_instructions[self.ir]
                 func()
