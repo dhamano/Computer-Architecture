@@ -202,6 +202,7 @@ class CPU: # Main CPU class.
     
     def pra(self):
         print(chr(self.reg[self.ram[self.pc+1]]))
+        self.inc_pc()
         
     
     def jmp(self):
